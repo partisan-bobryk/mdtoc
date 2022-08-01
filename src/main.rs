@@ -1,11 +1,9 @@
 use clap::Parser;
 use regex::Regex;
 use std::{
-    fs::File,
-    io::{self, BufRead, Write},
-    os::unix::prelude::FileExt,
-    path::Path,
-    process, vec,
+    fs::{remove_file, rename, OpenOptions},
+    io::{copy, BufRead, BufReader, Write},
+    vec,
 };
 
 #[derive(Parser)]
@@ -19,20 +17,26 @@ struct Cli {
 }
 
 fn main() {
-    let ref debug: bool = true;
     let args = Cli::parse();
 
-    let lines = read_lines(&args.inbound_source).unwrap_or_else(|err| {
-        eprintln!("Issue reading {}", args.inbound_source);
-        if debug == &true {
-            eprintln!("{}", err);
-        }
-        process::exit(1);
-    });
+    // TODO: Move this to its own function
+    let file = OpenOptions::new()
+        .read(true)
+        .open(&args.inbound_source)
+        .unwrap();
+
+    let temp_file_name = format!("{}_temp.md", args.inbound_source);
+    let mut temp_file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&temp_file_name)
+        .unwrap();
+
+    let lines_buffer = BufReader::new(&file).lines();
 
     let heading_regex = Regex::new(r"(?P<hash>#{2,})\s(?P<heading>.*)").unwrap();
     let mut headings: Vec<(String, usize)> = vec![];
-    for line in lines {
+    for line in lines_buffer {
         match line {
             Err(err) => eprintln!("{}", err),
             Ok(line) => match heading_regex.captures(&line) {
@@ -53,27 +57,25 @@ fn main() {
         }
     }
 
-    dbg!(&headings);
+    let file_contents = OpenOptions::new()
+        .read(true)
+        .open(&args.inbound_source)
+        .unwrap();
+
+    let mut file_buffer = BufReader::new(file_contents);
 
     let toc_string = generate_table_of_contents(headings);
-
-    let mut output_file = File::create("./sample_edited.md").unwrap();
-    output_file.write_all(toc_string.as_bytes()).unwrap();
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
+    temp_file.write(toc_string.as_bytes()).unwrap();
+    copy(&mut file_buffer, &mut temp_file).unwrap();
+    temp_file.flush().unwrap();
+    remove_file(&args.inbound_source).unwrap();
+    rename(temp_file_name, args.inbound_source).unwrap();
 }
 
 fn generate_table_of_contents(headings: Vec<(String, usize)>) -> String {
-    let mut table_of_contents = String::from("## Table of Contents\n");
+    let mut table_of_contents = String::from("\n## Table of Contents\n");
 
     for header in headings {
-        dbg!(&header);
         let mut tabs = String::new();
         for _ in 0..header.1 {
             tabs.push_str("  ");
@@ -82,6 +84,7 @@ fn generate_table_of_contents(headings: Vec<(String, usize)>) -> String {
         table_of_contents.push_str(&formatted_line);
     }
 
+    table_of_contents.push_str("\n");
     table_of_contents
 }
 
