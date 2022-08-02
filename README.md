@@ -42,7 +42,7 @@ As of the latest changes to the README, there isn't an official release candidat
 
 ### Requirements
 
-- Rust 1.60.X
+- Rust `1.62.X`
 
 ### Steps to install
 
