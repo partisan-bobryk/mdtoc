@@ -1,6 +1,6 @@
 # Markdown Table of Contents Generator
 
-This is an small cli utility when given an markdown file will parse it and create table of contents.
+This is an small cli utility when given a markdown file, the cli will parse it and create table of contents.
 
 ## Table of Contents
 
