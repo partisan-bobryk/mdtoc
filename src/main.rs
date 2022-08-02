@@ -10,7 +10,7 @@ fn main() {
     let args = Cli::parse();
 
     // Instantiate the generic helper
-    let mut toc_helper = TableOfContentsHelper::new(&args.inbound_source);
+    let mut toc_helper = TableOfContentsHelper::new(&args.input_file);
     let lines_buffer = BufReader::new(&toc_helper.original_file).lines();
 
     // Process the buffer and extract the headings

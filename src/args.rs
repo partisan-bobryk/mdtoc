@@ -6,6 +6,7 @@ use clap::Parser;
 #[clap(version = "0.1.0")]
 #[clap(about = "Generate table of contents in a markdown file")]
 pub struct Cli {
-    #[clap(long, value_parser)]
-    pub inbound_source: String,
+    /// Location of the markdown file
+    #[clap(long, short, value_parser)]
+    pub input_file: String,
 }
