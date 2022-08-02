@@ -19,7 +19,6 @@ struct Cli {
 fn main() {
     let args = Cli::parse();
 
-    // TODO: Move this to its own function
     let file = OpenOptions::new()
         .read(true)
         .open(&args.inbound_source)
@@ -34,42 +33,57 @@ fn main() {
 
     let lines_buffer = BufReader::new(&file).lines();
 
-    let heading_regex = Regex::new(r"(?P<hash>#{2,})\s(?P<heading>.*)").unwrap();
     let mut headings: Vec<(String, usize)> = vec![];
+    let heading_regex = Regex::new(r"(?P<hash>#{2,})\s(?P<heading>.*)").unwrap();
     for line in lines_buffer {
         match line {
             Err(err) => eprintln!("{}", err),
-            Ok(line) => match heading_regex.captures(&line) {
-                Some(cap) => {
-                    if cap.name("heading").is_none() || cap.name("hash").is_none() {
-                        continue;
-                    }
-
-                    let heading = cap.name("heading").unwrap();
-                    let hash = cap.name("hash").unwrap();
-                    headings.push((
-                        heading.as_str().to_string(),
-                        hash.as_str().chars().count() - 1,
-                    ));
+            Ok(line) => {
+                if let Some((heading_title, heading_tier)) =
+                    extract_heading_from_line(&heading_regex, &line)
+                {
+                    headings.push((heading_title, heading_tier));
                 }
-                None => (),
-            },
+            }
         }
     }
 
+    // Get formatted table of contents
+    let toc_string = generate_table_of_contents(headings);
+
+    // Prepare a temp file where we can control in which order content gets inserted
     let file_contents = OpenOptions::new()
         .read(true)
         .open(&args.inbound_source)
         .unwrap();
-
     let mut file_buffer = BufReader::new(file_contents);
 
-    let toc_string = generate_table_of_contents(headings);
-    temp_file.write(toc_string.as_bytes()).unwrap();
+    // Start writing table of contents to the top of the file
+    temp_file.write_all(toc_string.as_bytes()).unwrap();
+
+    // Use the file contents from the original document and append it after table of contents
     copy(&mut file_buffer, &mut temp_file).unwrap();
-    temp_file.flush().unwrap();
+
+    // Final stage to remove the original and rename the temp file to the original.
     remove_file(&args.inbound_source).unwrap();
     rename(temp_file_name, args.inbound_source).unwrap();
+}
+
+fn extract_heading_from_line(regex_pattern: &Regex, line: &String) -> Option<(String, usize)> {
+    if let Some(cap) = regex_pattern.captures(&line) {
+        if cap.name("heading").is_none() || cap.name("hash").is_none() {
+            return None;
+        }
+
+        let heading = cap.name("heading").unwrap();
+        let hash = cap.name("hash").unwrap();
+        return Some((
+            heading.as_str().to_string(),
+            hash.as_str().chars().count() - 1,
+        ));
+    }
+
+    None
 }
 
 fn generate_table_of_contents(headings: Vec<(String, usize)>) -> String {
