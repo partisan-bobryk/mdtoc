@@ -52,8 +52,8 @@ As of the latest changes to the README, there isn't an official release candidat
 
 ## Planned Features
 
-| Status             | Description                                                           | Issue                                          |
-| ------------------ | --------------------------------------------------------------------- | ---------------------------------------------- |
+|       Status       | Description                                                           |                     Issue                      |
+| :----------------: | --------------------------------------------------------------------- | :--------------------------------------------: |
 | :heavy_check_mark: | Generates table of contents at the top of the markdown file.          |                                                |
 |                    | Generating table of contents in a specific location of the documents. | [#1](https://github.com/VeprUA/mdtoc/issues/1) |
 |                    | Escaping unsupported characters and input validation.                 | [#2](https://github.com/VeprUA/mdtoc/issues/2) |
