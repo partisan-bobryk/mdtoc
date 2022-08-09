@@ -1,6 +1,6 @@
 use std::{
     fs::{remove_file, rename, File, OpenOptions},
-    io::{copy, BufReader, Lines, Seek, SeekFrom, Write},
+    io::{copy, BufRead, BufReader, Lines, Seek, SeekFrom, Write},
 };
 
 use regex::Regex;
@@ -33,15 +33,62 @@ impl TableOfContentsHelper {
     pub fn build(&mut self, table_of_contents: String) {
         // Prepare a temp file where we can control in which order content gets inserted
         self.original_file.seek(SeekFrom::Start(0)).unwrap();
-        let mut file_buffer = BufReader::new(&self.original_file);
+        let ref mut file_buffer = BufReader::new(&self.original_file);
+        let start_replace_token = "<!-- [mdtoc:start] -->";
+        let end_replace_token = "<!-- [mdtoc:end] -->";
+        let formatted_toc = format!(
+            "{}\n{}\n{}\n",
+            start_replace_token, table_of_contents, end_replace_token
+        );
 
-        // Start writing table of contents to the top of the file
-        self.temp_file
-            .write_all(table_of_contents.as_bytes())
-            .unwrap();
+        // contains_start_tag will serve as place to insert toc
+        let mut contains_start_tag: bool = false;
+        // contains_end_tag will indicate that operation should clear out existing content between the tags and replace with toc
+        let mut contains_end_tag: bool = false;
 
-        // Use the file contents from the original document and append it after table of contents
-        copy(&mut file_buffer, &mut self.temp_file).unwrap();
+        /*
+         * Analysis Loop
+         *
+         * We use an extra loop to confirm our assumptions. For example does it have a tag, ending tag, or only the start tag?
+         * With this information we can take accurate actions and only perform a write once.
+         */
+        for line in file_buffer.lines() {
+            if let Ok(line) = line {
+                if !contains_start_tag {
+                    contains_start_tag = line.contains(start_replace_token);
+                }
+
+                if !contains_end_tag {
+                    contains_end_tag = line.contains(end_replace_token);
+                }
+            }
+        }
+
+        file_buffer.seek(SeekFrom::Start(0)).unwrap();
+
+        /*
+         * Write Loop
+         */
+        if !contains_start_tag {
+            self.temp_file.write_all(formatted_toc.as_bytes()).unwrap();
+            copy(file_buffer, &mut self.temp_file).unwrap();
+        } else {
+            for line in file_buffer.lines() {
+                if let Ok(line) = line {
+                    //TODO: Handle the case where the is no end token
+
+                    //TODO: Handle the case where there is an end token
+
+                    // Replace  tag with table of contents
+                    let modified_line: String =
+                        line.replace(start_replace_token, &formatted_toc) + "\n";
+                    self.temp_file.write(modified_line.as_bytes()).unwrap();
+                }
+            }
+
+            // Close down the buffer as we are done writing to it
+            self.temp_file.flush().unwrap();
+        }
 
         // Final stage to remove the original and rename the temp file to the original.
         remove_file(&self.original_file_name).unwrap();
