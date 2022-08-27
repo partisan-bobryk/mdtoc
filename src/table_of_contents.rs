@@ -1,6 +1,8 @@
 use std::{
+    cmp,
     fs::{remove_file, rename, File, OpenOptions},
-    io::{copy, BufRead, BufReader, Lines, Seek, SeekFrom, Write},
+    io::{BufRead, BufReader, Seek, SeekFrom, Write},
+    vec,
 };
 
 use regex::Regex;
@@ -30,65 +32,101 @@ impl TableOfContentsHelper {
         }
     }
 
-    pub fn build(&mut self, table_of_contents: String) {
+    pub fn build(&mut self) {
         // Prepare a temp file where we can control in which order content gets inserted
         self.original_file.seek(SeekFrom::Start(0)).unwrap();
+
         let ref mut file_buffer = BufReader::new(&self.original_file);
+        let mut file_contents: Vec<String> = vec![];
+
         let start_replace_token = "<!-- [mdtoc:start] -->";
         let end_replace_token = "<!-- [mdtoc:end] -->";
-        let formatted_toc = format!(
-            "{}\n{}\n{}\n",
-            start_replace_token, table_of_contents, end_replace_token
-        );
 
         // contains_start_tag will serve as place to insert toc
-        let mut contains_start_tag: bool = false;
+        let mut start_tag_index: i32 = -1;
         // contains_end_tag will indicate that operation should clear out existing content between the tags and replace with toc
-        let mut contains_end_tag: bool = false;
+        let mut end_tag_index: i32 = -1;
+        let mut line_index: i32 = -1;
 
         /*
          * Analysis Loop
          *
-         * We use an extra loop to confirm our assumptions. For example does it have a tag, ending tag, or only the start tag?
-         * With this information we can take accurate actions and only perform a write once.
+         * We use a loop to confirm our assumptions and to filter out previous table of contents.
          */
         for line in file_buffer.lines() {
+            line_index += 1;
+
             if let Ok(line) = line {
-                if !contains_start_tag {
-                    contains_start_tag = line.contains(start_replace_token);
+                if line.contains(start_replace_token) && start_tag_index == -1 {
+                    start_tag_index = line_index;
                 }
 
-                if !contains_end_tag {
-                    contains_end_tag = line.contains(end_replace_token);
+                if line.contains(end_replace_token) {
+                    end_tag_index = line_index;
                 }
+
+                file_contents.push(line);
             }
         }
 
-        file_buffer.seek(SeekFrom::Start(0)).unwrap();
+        dbg!(&file_contents);
+
+        /*
+         * Transformation Loop
+         *
+         * We clean up the document by removing previous table of contents artifacts
+         */
+        dbg!(start_tag_index, end_tag_index);
+        let parsed_file: Vec<String> = file_contents
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _l)| {
+                let idx: i32 = *i as i32;
+                let is_in_toc_area: bool =
+                    start_tag_index < idx && end_tag_index >= cmp::max(start_tag_index, idx);
+
+                return !is_in_toc_area;
+            })
+            .map(|(_i, l)| l)
+            .collect::<Vec<String>>();
+
+        /*
+         * Generate Terms of Contents from cleaned up file
+         */
+        // Process the buffer and extract the headings
+        let headings = process_file_lines(parsed_file.to_owned());
+
+        // Get formatted table of contents
+        let toc_string = generate_table_of_contents(headings);
+        let formatted_toc = format!(
+            "{}\n{}\n{}",
+            start_replace_token, toc_string, end_replace_token
+        );
 
         /*
          * Write Loop
          */
-        if !contains_start_tag {
-            self.temp_file.write_all(formatted_toc.as_bytes()).unwrap();
-            copy(file_buffer, &mut self.temp_file).unwrap();
-        } else {
-            for line in file_buffer.lines() {
-                if let Ok(line) = line {
-                    //TODO: Handle the case where the is no end token
+        line_index = -1;
+        if start_tag_index == -1 {
+            self.temp_file.write(formatted_toc.as_bytes()).unwrap();
+            self.temp_file.write("\n".as_bytes()).unwrap();
+        }
 
-                    //TODO: Handle the case where there is an end token
-
-                    // Replace  tag with table of contents
-                    let modified_line: String =
-                        line.replace(start_replace_token, &formatted_toc) + "\n";
-                    self.temp_file.write(modified_line.as_bytes()).unwrap();
-                }
+        for line in parsed_file {
+            line_index += 1;
+            dbg!(&line);
+            let mut modified_line = line;
+            // Replace tag with table of contents)
+            if line_index == start_tag_index {
+                modified_line = formatted_toc.to_owned();
             }
 
-            // Close down the buffer as we are done writing to it
-            self.temp_file.flush().unwrap();
+            modified_line.push_str("\n");
+            self.temp_file.write(modified_line.as_bytes()).unwrap();
         }
+
+        // Close down the buffer as we are done writing to it
+        self.temp_file.flush().unwrap();
 
         // Final stage to remove the original and rename the temp file to the original.
         remove_file(&self.original_file_name).unwrap();
@@ -96,20 +134,15 @@ impl TableOfContentsHelper {
     }
 }
 
-pub fn process_file_lines(lines_buffer: Lines<BufReader<&File>>) -> Vec<(String, usize)> {
+pub fn process_file_lines(ref document_lines: Vec<String>) -> Vec<(String, usize)> {
     let mut headings: Vec<(String, usize)> = vec![];
     let heading_regex = Regex::new(r"(?P<hash>#{2,})\s(?P<heading>.*)").unwrap();
 
-    for line in lines_buffer {
-        match line {
-            Err(err) => eprintln!("{}", err),
-            Ok(line) => {
-                if let Some((heading_title, heading_tier)) =
-                    extract_heading_from_line(&heading_regex, &line)
-                {
-                    headings.push((heading_title, heading_tier));
-                }
-            }
+    for line in document_lines {
+        if let Some((heading_title, heading_tier)) =
+            extract_heading_from_line(&heading_regex, &line)
+        {
+            headings.push((heading_title, heading_tier));
         }
     }
 
