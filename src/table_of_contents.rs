@@ -69,14 +69,11 @@ impl TableOfContentsHelper {
             }
         }
 
-        dbg!(&file_contents);
-
         /*
          * Transformation Loop
          *
          * We clean up the document by removing previous table of contents artifacts
          */
-        dbg!(start_tag_index, end_tag_index);
         let parsed_file: Vec<String> = file_contents
             .into_iter()
             .enumerate()
@@ -114,7 +111,6 @@ impl TableOfContentsHelper {
 
         for line in parsed_file {
             line_index += 1;
-            dbg!(&line);
             let mut modified_line = line;
             // Replace tag with table of contents)
             if line_index == start_tag_index {
