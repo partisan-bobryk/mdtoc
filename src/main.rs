@@ -118,7 +118,6 @@ fn transform_loop(
 ) -> Result<()> {
     loop {
         let buffer = transform_rx.recv().unwrap();
-        dbg!(&buffer);
 
         if buffer.0.is_empty() && buffer.1.eq(&-1i32) {
             break;
@@ -153,7 +152,6 @@ fn write_loop(
     let mut filtered_lines: Vec<String> = vec![];
     loop {
         let buffer = write_rx.recv().unwrap();
-        dbg!(&buffer);
 
         if buffer.0.is_empty() && buffer.1 {
             break;
