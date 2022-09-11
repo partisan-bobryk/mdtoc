@@ -23,16 +23,20 @@ fn main() {
         end_tag_index: -1,
     }));
 
-    let (transform_tx, transform_rx) = unbounded();
-    let (write_tx, write_rx) = unbounded();
-
+    // Wind back the file incase the cursor was placed other than the beginning.
     toc_helper.original_file.seek(SeekFrom::Start(0)).unwrap();
     let file_buffer = BufReader::new(toc_helper.original_file);
 
+    // Instantiate channels of communication between the threads.
+    let (transform_tx, transform_rx) = unbounded();
+    let (write_tx, write_rx) = unbounded();
+
+    // Prepare sharing of state between different threads
     let analyze_app_state = Arc::clone(&thread_safe_apps_state);
     let transform_app_state = Arc::clone(&thread_safe_apps_state);
     let write_app_state = Arc::clone(&thread_safe_apps_state);
 
+    // Start threads
     let analyze_handle =
         thread::spawn(move || analyze_loop(analyze_app_state, file_buffer, transform_tx));
     let transform_handle =
