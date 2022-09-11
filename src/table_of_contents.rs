@@ -1,9 +1,8 @@
+use regex::Regex;
 use std::{
     fs::{File, OpenOptions},
     vec,
 };
-
-use regex::Regex;
 
 pub struct TableOfContentsHelper {
     pub original_file: File,
