@@ -2,14 +2,17 @@ use std::{
     cmp,
     fs::{remove_file, rename, File},
     io::BufReader,
-    io::{BufRead, BufWriter, Result, Write},
+    io::{BufRead, Result, Seek, SeekFrom, Write},
     sync::{Arc, Mutex},
-    thread,
+    thread, vec,
 };
 
 use clap::Parser;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use mdtoc::{args::Cli, table_of_contents::TableOfContentsHelper};
+use mdtoc::{
+    args::Cli,
+    table_of_contents::{generate_table_of_contents, process_file_lines, TableOfContentsHelper},
+};
 
 fn main() {
     let args = Cli::parse();
@@ -25,6 +28,7 @@ fn main() {
     let (transform_tx, transform_rx) = unbounded();
     let (write_tx, write_rx) = unbounded();
 
+    toc_helper.original_file.seek(SeekFrom::Start(0)).unwrap();
     let file_buffer = BufReader::new(toc_helper.original_file);
 
     let analyze_app_state = Arc::clone(&thread_safe_apps_state);
@@ -54,6 +58,7 @@ fn main() {
     // toc_helper.build()
 }
 
+#[derive(Debug)]
 struct AppState<'a> {
     start_replace_token: &'a str,
     end_replace_token: &'a str,
@@ -66,13 +71,15 @@ fn analyze_loop(
     file_buffer: BufReader<File>,
     transform_tx: Sender<(String, i32)>,
 ) -> Result<()> {
-    let analyzed_lines: Vec<String> = vec![];
+    let mut analyzed_lines: Vec<String> = vec![];
     let mut line_index: i32 = -1;
+
     for line in file_buffer.lines() {
         line_index += 1;
 
         if let Ok(line) = line {
             let mut locked_app_state = app_state.lock().unwrap();
+
             if line.contains(locked_app_state.start_replace_token)
                 && locked_app_state.start_tag_index == -1
             {
@@ -82,6 +89,8 @@ fn analyze_loop(
             if line.contains(locked_app_state.end_replace_token) {
                 locked_app_state.end_tag_index = line_index;
             }
+
+            analyzed_lines.push(line)
         }
     }
 
@@ -105,10 +114,11 @@ fn analyze_loop(
 fn transform_loop(
     app_state: Arc<Mutex<AppState>>,
     transform_rx: Receiver<(String, i32)>,
-    write_tx: Sender<(String, i32)>,
+    write_tx: Sender<(String, bool)>,
 ) -> Result<()> {
     loop {
         let buffer = transform_rx.recv().unwrap();
+        dbg!(&buffer);
 
         if buffer.0.is_empty() && buffer.1.eq(&-1i32) {
             break;
@@ -122,45 +132,67 @@ fn transform_loop(
             && locked_app_state.end_tag_index >= cmp::max(locked_app_state.start_tag_index, idx);
 
         if !is_in_toc_area {
-            write_tx.send((line, idx)).unwrap();
+            write_tx.send((line, false)).unwrap();
         }
     }
 
     // Done transforming data so let's notify the write thread that they
     // won't be receiving any more data.
-    write_tx.send(("".to_owned(), -1i32)).unwrap();
+    write_tx.send(("".to_owned(), true)).unwrap();
     Ok(())
 }
 
 fn write_loop(
     app_state: Arc<Mutex<AppState>>,
     write_source: &mut File,
-    write_rx: Receiver<(String, i32)>,
+    write_rx: Receiver<(String, bool)>,
 ) -> Result<()> {
+    // Just collect the transformed values before we write it.
+    // Use the collected data to generate a table of contents
+    // ugh it still sucks.
+    let mut filtered_lines: Vec<String> = vec![];
     loop {
         let buffer = write_rx.recv().unwrap();
+        dbg!(&buffer);
 
-        if buffer.0.is_empty() && buffer.1.eq(&-1i32) {
+        if buffer.0.is_empty() && buffer.1 {
             break;
         }
 
-        // TODO: Figure out how to generate table of contents on the fly
-
-        let line = buffer.0;
-        let idx = buffer.1;
-        let locked_app_state = app_state.lock().unwrap();
-
-        let mut modified_line = line;
-        // Replace tag with table of contents)
-        if idx == locked_app_state.start_tag_index {
-            // TODO: inject Table of contents
-            // modified_line = formatted_toc.to_owned();
-        }
-
-        modified_line.push_str("\n");
-        write_source.write(modified_line.as_bytes()).unwrap();
+        filtered_lines.push(buffer.0);
     }
 
-    write_source.flush().unwrap();
+    let locked_app_state = app_state.lock().unwrap();
+
+    // Generate table of contents
+    // Process the buffer and extract the headings
+    let headings = process_file_lines(filtered_lines.to_owned());
+
+    // Get formatted table of contents
+
+    let toc_string = generate_table_of_contents(headings);
+    let formatted_toc = format!(
+        "{}\n{}\n{}",
+        locked_app_state.start_replace_token, toc_string, locked_app_state.end_replace_token
+    );
+    // Start pouring in the table of contents
+    if locked_app_state.start_tag_index == -1 {
+        write_source.write_all(formatted_toc.as_bytes()).unwrap();
+        write_source.write_all(b"\n").unwrap();
+    }
+
+    // Write to file
+    let mut line_index = -1;
+    for line in filtered_lines {
+        line_index += 1;
+        let mut modified_line = line;
+        // Replace tag with table of contents)
+        if line_index == locked_app_state.start_tag_index {
+            modified_line = formatted_toc.to_owned();
+        }
+
+        modified_line.push('\n');
+        write_source.write_all(modified_line.as_bytes()).unwrap();
+    }
     Ok(())
 }
