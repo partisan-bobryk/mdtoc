@@ -14,7 +14,7 @@ BUILD_TARGET=$1
 source "$HOME"/.cargo/env
 
 rustup default $RUST_VERSION
-rustup target add BUILD_TARGET
+rustup target add $BUILD_TARGET
 
 
 # When building for linux distributions we need to specify a compiler
