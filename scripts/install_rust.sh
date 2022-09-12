@@ -13,16 +13,11 @@ chmod +x rustup.sh
 
 source "$HOME"/.cargo/env
 
-printenv
-
-
 if [ "$RUST_VERSION" != "stable" ]; then
 	rustup toolchain install "$RUST_VERSION"
 	rustup default "$RUST_VERSION"
 fi
-echo "Where is rust installed?"
-which rustup
 
-# Install toolchains
+# Install targets
 rustup target install aarch64-apple-darwin
 rustup target install x86_64-apple-darwin
