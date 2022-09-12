@@ -20,9 +20,9 @@ jobs:
           name: "Install Rust"
           command: ./scripts/install_rust.sh
       - persist_to_workspace:
-        root: $HOME
-        paths:
-          - ".cargo/*"
+          root: $HOME
+          paths:
+            - ".cargo/*"
 
   
   test:
