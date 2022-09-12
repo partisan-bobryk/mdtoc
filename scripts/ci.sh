@@ -13,6 +13,8 @@ ls -al ~/
 
 ls -al ~/.cargo/
 
+printenv
+
 source "$HOME"/.cargo/env
 
 BUILD_PATH="bin"
