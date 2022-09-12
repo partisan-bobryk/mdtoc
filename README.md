@@ -41,12 +41,12 @@ mdtoc -i README.md
 ### Injecting table of contents inside a file
 There is now an option to specify a line where the table of contents will be placed. Once the ToC is generated, it will have tags in the comments indicating a start and an end. It is safe to run `mdtoc` utility many times on the same file. It will replace the text between the tags.
 
-To specify where in the markdown file the table of contents will be generated, place the following comment:
+To specify where in the markdown file the table of contents should be generated, place the following comment:
 ```md
 <!-- [mdtoc:start] -->
 ```
 
-After you generate the table of contents you should see a starting and an ending tag wrapping the newly generated table. It is very important that you should not remove the ending tag otherwise running the `mdtoc` utility will not yield the desired output.
+After you generate the table of contents you should see a starting and an ending tag wrapping the newly generated table. It is very important that you do not remove the ending tag otherwise running the `mdtoc` utility will not yield the desired output.
 ```text
 <!-- [mdtoc:start] -->
 ...Generated Table of Contents...
