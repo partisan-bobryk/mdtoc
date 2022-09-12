@@ -61,7 +61,7 @@ workflows:
   release-workflow:
     jobs:
       - install-rust
-      - build-macos:
+      - build-mdtoc:
           requires:
             - install-rust
           matrix:
