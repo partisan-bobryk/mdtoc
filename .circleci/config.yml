@@ -18,7 +18,9 @@ jobs:
       - checkout
       - run: ./scripts/install_rust.sh
       - persist_to_workspace:
-          root: ./
+          root: "/"
+          paths:
+            - "./"
 
   
   test:
@@ -42,10 +44,10 @@ jobs:
             ls -al;
             bash ./scripts/ci.sh;
   
-  distribute:
-    executor: mac-os-platform
-    # Package the binaries and create a release on GH
-    steps:
+  # distribute:
+  #   executor: mac-os-platform
+  #   # Package the binaries and create a release on GH
+  #   steps:
 
 
 # Invoke jobs via workflows
