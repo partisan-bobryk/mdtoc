@@ -15,8 +15,9 @@ source "$HOME"/.cargo/env
 
 if [ "$RUST_VERSION" != "stable" ]; then
 	rustup toolchain install "$RUST_VERSION"
-	rustup default "$RUST_VERSION"
 fi
+
+rustup default $RUST_VERSION
 
 # Install Linux Musl linker
 brew install FiloSottile/musl-cross/musl-cross
