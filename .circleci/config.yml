@@ -20,14 +20,15 @@ jobs:
       - persist_to_workspace:
           root: "/"
           paths:
-            - "./"
+            - $CIRCLE_WORKING_DIRECTORY
+            - "$HOME/.cargo"
 
   
   test:
     executor: mac-os-platform
     steps:
       - attach_workspace:
-          at: ./
+          at: "/"
       - run: ./scripts/test.sh
 
   build-macos:
@@ -39,7 +40,7 @@ jobs:
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - attach_workspace:
-          at: ./
+          at: "/"
       - run:
           name: "Build"
           command: |
