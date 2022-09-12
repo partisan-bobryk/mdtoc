@@ -23,5 +23,6 @@ if [ "$RUST_VERSION" != "stable" ]; then
 	rustup default "$RUST_VERSION"
 fi
 
-rustup target install $MACOS_ARM
-rustup target install $MACOS_INTEL
+# Install toolchains
+rustup target install aarch64-apple-darwin
+rustup target install x86_64-apple-darwin
