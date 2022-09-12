@@ -20,7 +20,7 @@ jobs:
           name: "Install Rust"
           command: ./scripts/install_rust.sh
       - persist_to_workspace:
-          root: ${HOME}
+          root: ~/
           paths:
             - ".cargo/*"
 
@@ -30,7 +30,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: ${HOME}
+          at: ~/
       - run: ./scripts/test.sh
 
   build-macos:
@@ -43,7 +43,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: ${HOME}
+          at: ~/
       - run:
           name: "Build"
           command: ./scripts/ci.sh << parameters.target >>
