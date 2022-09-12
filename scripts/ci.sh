@@ -8,23 +8,20 @@ set -o errexit
 set -o pipefail
 set -o xtrace
 
-echo "See what in home dir"
-ls -al ~/
-
-ls -al ~/.cargo/
-
-printenv
-
-source "$HOME"/.cargo/env
-rustup default $RUST_VERSION
-
 BUILD_PATH="bin"
 BUILD_TARGET=$1
 
+source "$HOME"/.cargo/env
+
+rustup default $RUST_VERSION
+rustup target add BUILD_TARGET
+
+
 # When building for linux distributions we need to specify a compiler
-# via env variable
+# via env variable and add a linker
 if [ "$BUILD_TARGET" = "x86_64-unknown-linux-musl" ]; then
     TARGET_CC=x86_64-linux-musl-gcc
+    brew install FiloSottile/musl-cross/musl-cross
 fi
 
 cargo build --release --target $BUILD_TARGET --target-dir "$BUILD_PATH/$BUILD_TARGET"

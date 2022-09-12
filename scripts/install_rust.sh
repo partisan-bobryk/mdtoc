@@ -18,9 +18,9 @@ rustup default $RUST_VERSION
 
 
 # Install Linux Musl linker
-brew install FiloSottile/musl-cross/musl-cross
+# brew install FiloSottile/musl-cross/musl-cross
 
-# Install targets
-rustup target add aarch64-apple-darwin
-rustup target add x86_64-apple-darwin
-rustup target add x86_64-unknown-linux-musl
+# # Install targets
+# rustup target add aarch64-apple-darwin
+# rustup target add x86_64-apple-darwin
+# rustup target add x86_64-unknown-linux-musl
