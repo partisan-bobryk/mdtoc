@@ -16,6 +16,7 @@ ls -al ~/.cargo/
 printenv
 
 source "$HOME"/.cargo/env
+rustup default $RUST_VERSION
 
 BUILD_PATH="bin"
 BUILD_TARGET=$1
