@@ -18,6 +18,10 @@ if [ "$RUST_VERSION" != "stable" ]; then
 	rustup default "$RUST_VERSION"
 fi
 
+# Install Linux Musl linker
+brew install FiloSottile/musl-cross/musl-cross
+
 # Install targets
 rustup target install aarch64-apple-darwin
 rustup target install x86_64-apple-darwin
+rustup target install x86_64-unknown-linux-musl
