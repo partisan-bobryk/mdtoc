@@ -15,11 +15,6 @@ ls -al ~/.cargo/
 
 source "$HOME"/.cargo/env
 
-if [ "$RUST_VERSION" != "stable" ]; then
-	rustup toolchain install "$RUST_VERSION"
-	rustup default "$RUST_VERSION"
-fi
-
 BUILD_PATH="bin"
 BUILD_TARGET=$1
 
