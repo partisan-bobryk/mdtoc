@@ -8,7 +8,13 @@ set -o errexit
 set -o pipefail
 set -o xtrace
 
+echo "See what in home dir"
+ls -al ~/
+
+ls -al ~/.cargo/
+
 source "$HOME"/.cargo/env
+
 if [ "$RUST_VERSION" != "stable" ]; then
 	rustup toolchain install "$RUST_VERSION"
 	rustup default "$RUST_VERSION"
