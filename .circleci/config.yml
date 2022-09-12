@@ -56,4 +56,6 @@ workflows:
   release-workflow:
     jobs:
       - install-rust
-      - build-macos
+      - build-macos:
+          requires:
+            - install-rust
