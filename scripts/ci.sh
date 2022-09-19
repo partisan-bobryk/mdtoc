@@ -26,4 +26,8 @@ fi
 
 cargo build --release --target $BUILD_TARGET --target-dir "$BUILD_PATH/$BUILD_TARGET"
 
-ls -al "$BUILD_PATH"
+# TODO Code Signing
+
+# Package up
+chmod +x "$BUILD_PATH/$BUILD_TARGET/mdtoc"
+tar cfz mdtoc-$BUILD_TARGET.tar.gz "$BUILD_PATH/$BUILD_TARGET/mdtoc"

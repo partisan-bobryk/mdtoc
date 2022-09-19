@@ -2,6 +2,9 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
+orbs:
+  github-cli: circleci/github-cli@2.1.0
+
 executors:
   mac-os-platform:
     macos:
@@ -52,11 +55,8 @@ jobs:
       - run:
           name: "Build"
           command: ./scripts/ci.sh << parameters.target >>
-  
-  # distribute:
-  #   executor: mac-os-platform
-  #   # Package the binaries and create a release on GH
-  #   steps:
+      - store_artifacts:
+          path: << parameters.target >>.tar.gz
 
 
 # Invoke jobs via workflows
