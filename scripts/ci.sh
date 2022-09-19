@@ -10,6 +10,7 @@ set -o xtrace
 
 BUILD_PATH="bin"
 BUILD_TARGET=$1
+ARTIFACT_NAME="mdtoc-$BUILD_TARGET.tar.gz"
 
 source "$HOME"/.cargo/env
 
@@ -29,9 +30,8 @@ cargo build --release --target $BUILD_TARGET --target-dir "$BUILD_PATH"
 # TODO Code Signing
 
 # Package up
-local artifact_name=mdtoc-$BUILD_TARGET.tar.gz
 cd "$BUILD_PATH/$BUILD_TARGET/release"
 chmod +x mdtoc
-tar cfz $artifact_name mdtoc
+tar cfz $ARTIFACT_NAME mdtoc
 cd -
-mv "$BUILD_PATH/$BUILD_TARGET/release/$artifact_name" .
+mv "$BUILD_PATH/$BUILD_TARGET/release/$ARTIFACT_NAME" .
