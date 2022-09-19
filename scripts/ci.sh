@@ -24,7 +24,7 @@ if [ "$BUILD_TARGET" = "x86_64-unknown-linux-musl" ]; then
     brew install FiloSottile/musl-cross/musl-cross
 fi
 
-cargo build --release --target $BUILD_TARGET --target-dir "$BUILD_PATH/$BUILD_TARGET"
+cargo build --release --target $BUILD_TARGET --target-dir "$BUILD_PATH"
 
 # TODO Code Signing
 

@@ -65,12 +65,15 @@ workflows:
   release-workflow:
     jobs:
       - install-rust
-      - test
+      - test:
+          requires:
+            - install-rust
       - build-mdtoc:
           # when:
           #   condition:
           #     equal: [main]
           requires:
+            - test
             - install-rust
           matrix:
             parameters:
