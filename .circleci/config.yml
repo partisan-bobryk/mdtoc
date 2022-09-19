@@ -56,7 +56,7 @@ jobs:
           name: "Build"
           command: ./scripts/ci.sh << parameters.target >>
       - store_artifacts:
-          path: << parameters.target >>.tar.gz
+          path: mdtoc-<< parameters.target >>.tar.gz
 
 
 # Invoke jobs via workflows
