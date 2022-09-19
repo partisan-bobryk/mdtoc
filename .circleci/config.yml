@@ -2,8 +2,8 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-orbs:
-  github-cli: circleci/github-cli@2.1.0
+# orbs:
+#   github-cli: circleci/github-cli@2.1.0
 
 executors:
   mac-os-platform:
@@ -65,7 +65,11 @@ workflows:
   release-workflow:
     jobs:
       - install-rust
+      - test
       - build-mdtoc:
+          # when:
+          #   condition:
+          #     equal: [main]
           requires:
             - install-rust
           matrix:
