@@ -10,5 +10,6 @@ set -o xtrace
 
 source "$HOME"/.cargo/env
 
+rustup default $RUST_VERSION
 
 cargo run test
